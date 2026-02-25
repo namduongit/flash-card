@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+button {
+    cursor: pointer;
+}
+
+textarea:focus, input:focus{
+    outline: none;
+}
+
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}
+input::-ms-reveal,
+input::-ms-clear {
+  display: none;
+}
+
+.mini-lesson-card_icon {
+    transform: rotate(-10deg);
+}
