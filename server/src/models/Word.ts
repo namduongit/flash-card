@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document } from "mongoose";
-import { WordType } from "../types/enum/index";
+import { WordType } from "../types/enums/index";
 
 export interface IWordDocument extends Document {
   lessonId: mongoose.Types.ObjectId;

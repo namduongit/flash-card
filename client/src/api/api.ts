@@ -1,86 +1,92 @@
-import axios, { AxiosError } from "axios";
+import axios, { AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from "axios";
+import type { AuthState } from "../contexts/auth-context";
+import type { RestResponse } from "../common/response.type";
 import { AuthService } from "../services/AuthService";
 
-const ApiWithAuth = () => {
+const ApiService = () => {
     const api = axios.create({
         baseURL: import.meta.env.VITE_SERVER_URL,
-        withCredentials: true, // Allow sending cookies with requests
+        // Allow sending cookies with requests and receiving cookies from the server
+        withCredentials: true
     });
 
-    api.interceptors.response.use(
-        (response) => {
-            return response;
-        },
-
-        // Lesson Failed -> Vao cho nay
-        async (error: any) => {
-            if (error instanceof AxiosError) {
-                if (error.response) {
-                    const code = error.response.status;
-                    const statusText = error.response.statusText;
-
-                    // Case 1: Unauthorized - Access token is invalid or expired
-                    if (code === 401 && statusText === "Unauthorized") {
-                        // Post to get new access token
-                        const result = await AuthService.RefreshToken();
-                        if (result.data && result.data.accessToken) {
-                            // Save token in localStorage
-                            const stored = localStorage.getItem("CURRENT_ACCOUNT");
-                            if (stored) {
-                                const parsed = JSON.parse(stored);
-                                if (parsed.accessToken) {
-                                    parsed.accessToken = result.data.accessToken;
-                                    localStorage.setItem("CURRENT_ACCOUNT", JSON.stringify(parsed));
-                                }
-                            }
-                            if (error.config) {
-                                error.config.headers["Authorization"] = `Bearer ${result.data.accessToken}`;
-                            }
-
-                        }
-                    }
-                }
-            }
-        }
-    );
-
-    api.interceptors.request.use((config) => {
+    // Config request
+    api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
         const stored = localStorage.getItem("CURRENT_ACCOUNT");
         if (stored) {
-            try {
-                const parsed = JSON.parse(stored);
+            const parsed: AuthState = JSON.parse(stored) || {};
+            if (parsed) {
                 if (parsed.accessToken) {
-                    config.headers["Authorization"] = `Bearer ${parsed.accessToken}`;
+                    config.headers.Authorization = `Bearer ${parsed.accessToken}`;
                 }
-            } catch (error) {
-                console.error("Failed to parse stored auth state", error);
-                localStorage.removeItem("CURRENT_ACCOUNT");
             }
+            return config;
         }
+        localStorage.removeItem("CURRENT_ACCOUNT");
         return config;
     });
 
-    return api;
-}
-
-const ApiWithNone = () => {
-    const api = axios.create({
-        baseURL: import.meta.env.VITE_SERVER_URL,
-        // allow to send cookies in request (refresh token)
-       withCredentials: true, // Allow sending cookies with requests
-    });
-
+    // Config response
     api.interceptors.response.use(
-        (response) => {
+        (response: AxiosResponse) => {
             return response;
         },
-        (error: any) => {
-            console.log(error)
+        async (error: AxiosError) => {
+            console.log("error in here")
+            if (error.response) {
+                const code = error.response.status;
+                const statusText = error.response.statusText;
+
+                // Case 1: Unauthorized - Access token is invalid or expired
+                if (code === 401 && statusText == "Unauthorized") {
+                    console.log("Access token expired, attempting to refresh token...");
+                    const result = await AuthService.RefreshToken();
+                    if (result) {
+                        result.data as {
+                            accessToken: string
+                        };
+                        const stored = localStorage.getItem("CURRENT_ACCOUNT");
+                        if (stored) {
+                            const parsed: AuthState = JSON.parse(stored) || {};
+                            if (parsed) {
+                                parsed.accessToken = result.data.accessToken;
+                                localStorage.setItem("CURRENT_ACCOUNT", JSON.stringify(parsed));
+                            }
+                        }
+                        // Retry the original request with the new access token
+                        const originalRequest = error.config;
+                        if (originalRequest && originalRequest.headers) {
+                            originalRequest.headers.Authorization = `Bearer ${result.data.accessToken}`;
+                            return api(originalRequest);
+                        }
+                    }
+                }
+
+                // Other case
+
+            } else {
+                error.response = {
+                    status: 500,
+                    statusText: "Internal Server Error",
+                    data: {
+                        status: 500,
+                        message: "Internal Server Error",
+                        error: "Network error or server is unreachable",
+                        data: null
+                    } as RestResponse<null>,
+                    headers: {},
+                    config: {} as InternalAxiosRequestConfig
+                } as AxiosResponse;
+
+                // Return the modified error to services to handle
+                // Service A use ApiService, Error is Network error -> Service A can recieve a response 
+                return Promise.reject(error);
+            }
         }
-    );
+    )
 
     return api;
 }
 
-export { ApiWithAuth, ApiWithNone }
+export default ApiService;
 

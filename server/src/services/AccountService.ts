@@ -1,7 +1,7 @@
 import { AccountRepository } from "../repositories/AccountRepository";
 import { IAccount } from "../types/index";
 import { RestResponse, SuccessResponse } from "../types/response";
-import { LoginRes, RegisterRes, RefreshTokenRes, CheckTokenRes, VerifyTokenRes } from "../types/responses/account-response";
+import { LoginRes, RegisterRes, RefreshTokenRes, CheckTokenRes, VerifyTokenRes, ChangePasswordRes } from "../types/responses/account-response";
 import { BcyptHashing } from "../utils/bcrypt";
 import { JsonWebToken } from "../utils/jsonwt";
 
@@ -77,6 +77,27 @@ export class AccountService {
     } catch (error) {
       throw new Error("Invalid token");
     }
+  }
+
+  async changePassword(accountId: string, oldPassword: string, newPassword: string): Promise<RestResponse<ChangePasswordRes>> {
+    const account = await this.accountRepository.findById(accountId);
+    if (!account) {
+      throw new Error("Account not found");
+    }
+
+    const isPasswordValid = await this.bcryptService.compareResource(oldPassword, account.password);
+    if (!isPasswordValid) {
+      throw new Error("Incorrect old password");
+    }
+
+    if (oldPassword === newPassword) {
+      throw new Error("New password must be different from old password");
+    }
+
+    const hashedPassword = await this.bcryptService.hashPlainResource(newPassword);
+    await this.accountRepository.updatePassword(accountId, hashedPassword);
+
+    return SuccessResponse({ message: "Password changed successfully" });
   }
 
   // Other service, used for valid token in middleware 

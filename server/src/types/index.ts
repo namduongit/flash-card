@@ -1,4 +1,4 @@
-import { WordType } from "./enum";
+import { WordType } from "./enums";
 
 export interface IAccount {
   _id?: string;

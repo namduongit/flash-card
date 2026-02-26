@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
 import type { ErrorType, HttpMessage } from "../common/response.type";
+import { AxiosError } from "axios";
+import { MessageContext } from "../contexts/message-context";
 
 interface ExecuteOptions {
     isConfirm?: boolean;
@@ -27,6 +29,8 @@ type ExecuteResult<T> = {
 } | null;
 
 export const useExecute = () => {
+    const useMessageContext = useContext(MessageContext);
+
     const [isLoading, setIsLoading] = useState(false);
 
     const execute = async <T,>(
@@ -51,6 +55,22 @@ export const useExecute = () => {
                 message: response.data.message
             }
         } catch (error: any) {
+            if (error instanceof AxiosError) {
+                if (error.response) {
+                    // Do anything with error.response.data
+                    
+                    // Case: Network error
+                    if (error.response.data) {
+                        if (error.response.data.status === 500 && error.response.data.error === "Network error or server is unreachable") {
+                            useMessageContext?.addMessage({
+                                title: "Có lỗi xảy ra phía máy chủ",
+                                content: "Có vẻ máy chủ đang gặp sự cố không thể xử lý yêu cầu, vui lòng thử lại sau ít phút. Gửi báo cáo lỗi tới email: namduongit@hotmail.com nếu lỗi vẫn tiếp diễn.",
+                                type: "error"
+                            });
+                        }
+                    }
+                }
+            }
             setIsLoading(false);
             return null;
         }

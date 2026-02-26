@@ -87,7 +87,6 @@ const Register = () => {
             />
           </div>
 
-          {/* Password Field */}
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
               Mật Khẩu
@@ -109,12 +108,11 @@ const Register = () => {
                 disabled={isLoading}
                 className="absolute right-3 top-2.5 text-gray-500 hover:text-gray-700 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {showPassword ? '🙈 Ẩn' : '👁 Xem'}
+                {showPassword ? 'Ẩn' : 'Xem'}
               </button>
             </div>
           </div>
 
-          {/* Confirm Password Field */}
           <div>
             <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
               Xác Nhận Mật Khẩu
@@ -136,7 +134,7 @@ const Register = () => {
                 disabled={isLoading}
                 className="absolute right-3 top-2.5 text-gray-500 hover:text-gray-700 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {showConfirmPassword ? '🙈 Ẩn' : '👁 Xem'}
+                {showConfirmPassword ? 'Ẩn' : 'Xem'}
               </button>
             </div>
           </div>
@@ -177,7 +175,7 @@ const Register = () => {
         {/* Login Link */}
         <p className="text-center text-gray-600 mt-6">
           Đã có tài khoản?{' '}
-          <Link to="/login" className="text-indigo-600 hover:text-indigo-700 font-semibold">
+          <Link to="/auth/login" className="text-indigo-600 hover:text-indigo-700 font-semibold">
             Đăng Nhập
           </Link>
         </p>

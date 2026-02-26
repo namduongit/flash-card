@@ -1,5 +1,6 @@
 import express, { Response } from "express";
 import cors from "cors"
+import cookieParser from "cookie-parser";
 import { connectDB } from "./config/database";
 import authRoutes from "./routes/AuthRoutes";
 import lessonRoutes from "./routes/LessonRoutes";
@@ -7,6 +8,8 @@ import wordRoutes from "./routes/WordRoutes";
 import translationRoutes from "./routes/TranslationRoutes";
 import { verifyToken } from "./middleware/AuthMiddleware";
 import { errorHandler } from "./middleware/ErrorHandler";
+
+import "./config/dictionary";
 
 // Init request.account = { ... } to handle middleware
 declare global {
@@ -28,8 +31,10 @@ const bootStrap = async () => {
     // Middleware
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
+    app.use(cookieParser());
     app.use(cors({
         origin: 'http://localhost:5173',
+        credentials: true,
         optionsSuccessStatus: 200,
     }));
 

@@ -33,7 +33,7 @@ export class JsonWebToken {
       type: "access",
       app: "flash-card",
       UTCTime: new Date().toISOString()
-    } as TokenPayload, this.jwtSecret, { expiresIn: "1h" });
+    } as TokenPayload, this.jwtSecret, { expiresIn: "1d" });
   }
 
   /**

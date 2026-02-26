@@ -32,15 +32,35 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             const stored = localStorage.getItem("CURRENT_ACCOUNT");
             if (stored) {
                 const response = await execute<ValidStateRes>(AuthService.CheckToken());
-                if (response?.data && response.data.expiresIn > 0 && response.data.isValid) {
-                    // Token is valid, set auth state
-                    setAuthState(JSON.parse(stored));
-                    setIsAuthenticated(true);
-                } else {
-                    console.log("Run here")
-                    // Token is invalid or expired, clear auth state
-                    // clearAuth();
-                    // window.location.href = "/page/login";
+                if (response) {
+                    if (response.data.expiresIn > 0 && response.data.isValid) {
+                        setAuthState(JSON.parse(stored));
+                        setIsAuthenticated(true);
+                    } else {
+                        // Token is invalid or expired, get new token
+                        const result = await execute<{
+                            accessToken: string
+                        }>(AuthService.RefreshToken());
+                        if (result?.data) {
+                            const newAuthState = {
+                                ...JSON.parse(stored),
+                                accessToken: result.data.accessToken
+                            } as AuthState;
+                            localStorage.setItem("CURRENT_ACCOUNT", JSON.stringify(newAuthState));
+                            setAuthState(newAuthState);
+                            setIsAuthenticated(true);
+                        } else {
+                            localStorage.removeItem("CURRENT_ACCOUNT");
+                            setAuthState(null);
+                            setIsAuthenticated(false);
+                        }
+                    }
+                }
+                else {
+                    localStorage.removeItem("CURRENT_ACCOUNT");
+                    setAuthState(null);
+                    setIsAuthenticated(false);
+                    window.location.href = "/page/login";
                 }
             }
             setIsLoadingSession(false);

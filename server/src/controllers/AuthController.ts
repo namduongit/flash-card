@@ -51,4 +51,21 @@ export class AuthController {
         
         res.status(result.status).json(result);
     }
+
+    async changePassword(req: Request, res: Response) {
+        const accountId = req.account._id;
+        const { oldPassword, newPassword } = req.body;
+
+        if (!oldPassword || !newPassword) {
+            const response = {
+                success: false,
+                message: "Old password and new password are required",
+                status: 400
+            };
+            return res.status(response.status).json(response);
+        }
+
+        const result = await this.authService.changePassword(accountId, oldPassword, newPassword);
+        res.status(result.status).json(result);
+    }
 }

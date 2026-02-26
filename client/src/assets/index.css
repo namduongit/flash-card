@@ -1,22 +1,70 @@
 @import "tailwindcss";
 
 button {
-    cursor: pointer;
+  cursor: pointer;
 }
 
-textarea:focus, input:focus{
-    outline: none;
+textarea:focus,
+input:focus {
+  outline: none;
 }
 
 input[type="password"]::-ms-reveal,
 input[type="password"]::-ms-clear {
   display: none;
 }
+
 input::-ms-reveal,
 input::-ms-clear {
   display: none;
 }
 
 .mini-lesson-card_icon {
-    transform: rotate(-10deg);
+  transform: rotate(-10deg);
+}
+
+.toast {
+  animation: toast-animate 0.2s ease-out;
+}
+
+@keyframes toast-animate {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.confirm {
+  animation: confirm-animate 0.2s ease-out;
+}
+
+@keyframes confirm-animate {
+  from {
+    opacity: 0.6;
+    scale: 0.95;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+.message {
+  animation: message-animate 0.2s ease-out;
+}
+
+@keyframes message-animate {
+  from {
+    opacity: 0.6;
+    scale: 0.95;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
 }

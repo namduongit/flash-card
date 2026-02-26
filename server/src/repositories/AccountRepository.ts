@@ -22,6 +22,10 @@ export class AccountRepository {
     return await AccountModel.findByIdAndUpdate(id, data, { new: true });
   }
 
+  async updatePassword(id: string, hashedPassword: string): Promise<IAccountDocument | null> {
+    return await AccountModel.findByIdAndUpdate(id, { password: hashedPassword }, { new: true });
+  }
+
   async deleteById(id: string): Promise<IAccountDocument | null> {
     return await AccountModel.findByIdAndDelete(id);
   }

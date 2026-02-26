@@ -1,18 +1,18 @@
 import { useEffect, useState, useContext } from "react"
 import { useNavigate } from "react-router";
 import { AuthContext } from "../../contexts/auth-context";
-import { ModalContext } from "../../contexts/modal-context";
 import { LessonService } from "../../services/LessonService";
 import { useExecute } from "../../hooks/execute";
 import type { Lesson } from "../../common/types/lesson-type";
 import MiniLessonCardComponent from "../../components/mini-lesson-card/mini-lesson-card";
+import AddLessonModal from "../../components/add-modal/add-lesson";
 
 const LessonPage: React.FC = () => {
     const [lessons, setLessons] = useState<Lesson[]>([]);
+    const [isShowCreateLesson, setIsShowCreateLesson] = useState(false);
 
     const navigate = useNavigate();
     const { authState, isAuthenticated } = useContext(AuthContext);
-    const modalContext = useContext(ModalContext);
     const { execute, isLoading } = useExecute();
 
     useEffect(() => {
@@ -38,7 +38,7 @@ const LessonPage: React.FC = () => {
                     </p>
                 </div>
                 <button
-                    onClick={() => modalContext?.openModal("add-lesson")}
+                    onClick={() => setIsShowCreateLesson(true)}
                     className="bg-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-indigo-700 transition flex items-center gap-2"
                 >
                     <i className="fa-solid fa-plus"></i>
@@ -55,7 +55,7 @@ const LessonPage: React.FC = () => {
                     <i className="fa-solid fa-book text-6xl text-gray-300 mb-4"></i>
                     <p className="text-gray-500 text-xl mb-4">Bạn chưa có bài học nào</p>
                     <button
-                        onClick={() => modalContext?.openModal("add-lesson")}
+                        onClick={() => setIsShowCreateLesson(true)}
                         className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-indigo-700 transition"
                     >
                         Tạo Bài Học Đầu Tiên
@@ -68,6 +68,14 @@ const LessonPage: React.FC = () => {
                     ))}
                 </div>
             )}
+
+            <AddLessonModal 
+                isOpen={isShowCreateLesson}
+                onSuccess={(newLesson) => {
+                    setLessons([...lessons, newLesson]);
+                }}
+                onClose={() => setIsShowCreateLesson(false)}
+            />
         </div>
     )
 }

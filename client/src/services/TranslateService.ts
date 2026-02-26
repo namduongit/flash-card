@@ -1,20 +1,20 @@
-import { ApiWithNone } from "../api/api";
+import ApiService from "../api/api";
 
 export const TranslateService = {
     async TranslateWord(english: string) {
-        const response = await ApiWithNone().post("/api/translate", { english });
+        const response = await ApiService().post("/api/translate", { english });
         return response;
     },
 
     async SearchDictionary(query: string) {
-        const response = await ApiWithNone().get("/api/translate/search", {
+        const response = await ApiService().get("/api/translate/search", {
             params: { q: query }
         });
         return response;
     },
 
     async GetDictionary() {
-        const response = await ApiWithNone().get("/api/translate/dictionary");
+        const response = await ApiService().get("/api/translate/dictionary");
         return response;
     }
 }

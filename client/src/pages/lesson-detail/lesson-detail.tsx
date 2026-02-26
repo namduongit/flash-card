@@ -1,22 +1,23 @@
 import { useEffect, useState, useContext } from "react";
 import { useParams, useNavigate, Link } from "react-router";
 import { AuthContext } from "../../contexts/auth-context";
-import { ModalContext } from "../../contexts/modal-context";
 import { LessonService } from "../../services/LessonService";
 import { useExecute } from "../../hooks/execute";
 import type { LessonDetail } from "../../common/types/lesson-type";
 import type { Word } from "../../common/types/word-type";
 import WordRowComponent from "../../components/word-row/word-row";
+import AddWordModal from "../../components/add-modal/add-word";
 
 const LessonDetailPage: React.FC = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const { isAuthenticated } = useContext(AuthContext);
-    const modalContext = useContext(ModalContext);
     const { execute, isLoading } = useExecute();
 
     const [lesson, setLesson] = useState<LessonDetail | null>(null);
     const [words, setWords] = useState<Word[]>([]);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [isShowCreateWord, setIsShowCreateWord] = useState(false);
 
     useEffect(() => {
         if (!id) {
@@ -34,6 +35,11 @@ const LessonDetailPage: React.FC = () => {
             setWords(result.data.words || []);
         }
     }
+
+    const filteredWords = words.filter(word =>
+        word.english.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        word.vietnamese.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     if (isLoading) {
         return (
@@ -71,15 +77,21 @@ const LessonDetailPage: React.FC = () => {
                 <div>
                     <div className="flex items-center rounded w-80 border border-gray-300">
                         <i className="fa-solid fa-magnifying-glass ps-2 text-sm text-gray-500 font-semibold"></i>
-                        <input type="text" className="ps-4 py-1 w-full" placeholder="Tìm từ vựng..." />
+                        <input 
+                            type="text" 
+                            className="ps-4 py-1 w-full" 
+                            placeholder="Tìm từ vựng..." 
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
                     </div>
                 </div>
 
 
                 <div>
                     <button 
-                        onClick={() => modalContext?.openModal("add-word", { lessonId: id })}
-                        className="bg-blue-600 text-white px-3 py-2 rounded-lg font-semibold hover:bg-indigo-700 transition flex items-center gap-2"
+                        onClick={() => setIsShowCreateWord(true)}
+                        className="bg-blue-700 text-white px-3 py-2 rounded-lg font-semibold hover:bg-indigo-700 transition flex items-center gap-2"
                     >
                         Thêm Từ
                     </button>
@@ -92,11 +104,16 @@ const LessonDetailPage: React.FC = () => {
                         <i className="fa-solid fa-book-open text-6xl text-gray-300 mb-4"></i>
                         <p className="text-gray-500 text-xl mb-4">Bài học chưa có từ vựng nào</p>
                         <button
-                            onClick={() => modalContext?.openModal("add-word", { lessonId: id })}
+                            onClick={() => setIsShowCreateWord(true)}
                             className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-indigo-700 transition"
                         >
                             Thêm Từ Đầu Tiên
                         </button>
+                    </div>
+                ) : filteredWords.length === 0 ? (
+                    <div className="text-center py-16">
+                        <i className="fa-solid fa-search text-6xl text-gray-300 mb-4"></i>
+                        <p className="text-gray-500 text-xl">Không tìm thấy từ vựng nào phù hợp</p>
                     </div>
                 ) : (
                     <div className="overflow-x-auto border rounded-lg border-gray-300">
@@ -111,14 +128,32 @@ const LessonDetailPage: React.FC = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {words.map((word, idx) => (
-                                    <WordRowComponent key={idx} {...word} />
+                                {filteredWords.map((word, idx) => (
+                                    <WordRowComponent 
+                                        key={idx} 
+                                        {...word}
+                                        onUpdate={(updatedWord) => {
+                                            setWords(words.map(w => w._id === updatedWord._id ? updatedWord : w));
+                                        }}
+                                        onDelete={(wordId) => {
+                                            setWords(words.filter(w => w._id !== wordId));
+                                        }}
+                                    />
                                 ))}
                             </tbody>
                         </table>
                     </div>
                 )}
             </div>
+
+            <AddWordModal 
+                isOpen={isShowCreateWord}
+                lessonId={id || ""}
+                onSuccess={(newWord) => {
+                    setWords([...words, newWord]);
+                }}
+                onClose={() => setIsShowCreateWord(false)}
+            />
         </div>
     )
 }

@@ -2,14 +2,14 @@ import { useContext } from "react";
 import { ToastContext } from "../contexts/toast-context";
 
 export const useNotification = () => {
-    const { addToast } = useContext(ToastContext);
+    const useToast = useContext(ToastContext);
 
     const showSuccess = (message: string) => {
-        addToast(message, "success");
+        useToast?.addToast(message, "success");
     };
 
     const showError = (message: string) => {
-        addToast(message, "error");
+        useToast?.addToast(message, "error");
     };
 
     return { showSuccess, showError };

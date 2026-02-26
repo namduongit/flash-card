@@ -30,3 +30,7 @@ export type CheckTokenRes = {
     }
     expiresIn: number | null
 }
+
+export type ChangePasswordRes = {
+    message: string
+}

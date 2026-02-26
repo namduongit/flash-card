@@ -5,6 +5,7 @@ import { useNotification } from '../../hooks/notification';
 import { useExecute } from '../../hooks/execute';
 import { AuthContext } from '../../contexts/auth-context';
 import type { LoginRes } from '../../common/types/auth-type';
+import { MessageContext } from '../../contexts/message-context';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -17,8 +18,10 @@ const Login = () => {
   const { execute, isLoading } = useExecute();
 
   const { showError } = useNotification();
+  const useMessage = useContext(MessageContext);
 
   const handleSubmit = async (e: React.FormEvent) => {
+  
     e.preventDefault();
 
     if (!email || !password) {
@@ -31,8 +34,14 @@ const Login = () => {
       setTimeout(() => {
         navigate("/");
       }, 500);
+    } else {
+      useMessage?.addMessage({
+        type: "error",
+        title: "Đăng nhập thất bại",
+        content: "Tài khoản hoặc mật khẩu không chính xác. Vui lòng thử lại."
+      });
     }
-  };
+  }
 
   return (
     <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-100 flex items-center justify-center py-12 px-4">
@@ -45,7 +54,6 @@ const Login = () => {
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Email Field */}
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
               Email
@@ -62,7 +70,6 @@ const Login = () => {
             />
           </div>
 
-          {/* Password Field */}
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
               Mật Khẩu
@@ -89,7 +96,6 @@ const Login = () => {
             </div>
           </div>
 
-          {/* Submit Button */}
           <button
             type="submit"
             disabled={isLoading}
@@ -100,10 +106,9 @@ const Login = () => {
           </button>
         </form>
 
-        {/* Sign Up Link */}
         <p className="text-center text-gray-600 mt-6">
           Chưa có tài khoản?{' '}
-          <Link to="/register" className="text-indigo-600 hover:text-indigo-700 font-semibold">
+          <Link to="/auth/register" className="text-indigo-600 hover:text-indigo-700 font-semibold">
             Đăng Ký Ngay
           </Link>
         </p>

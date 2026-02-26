@@ -22,3 +22,7 @@ export type ValidStateRes = {
     expiresIn: number,
     isValid: boolean
 }
+
+export type ChangePasswordRes = {
+    message: string
+}
