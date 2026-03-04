@@ -1,9 +1,9 @@
-import { useContext } from "react";
 import { Link, useLocation } from "react-router";
-import { AuthContext } from "../../contexts/auth-context";
+import { requireContext } from "../../utils/require-context";
+import { AuthContext, type AuthContextType } from "../../contexts/providers/authentication-context";
 
 const HeaderComponent: React.FC = () => {
-    const { isAuthenticated, authState } = useContext(AuthContext);
+    const { isAuthenticated, authState } = requireContext<AuthContextType>(AuthContext);
     const location = useLocation();
 
     const isAuthPage = location.pathname === "/auth/login" || location.pathname === "/auth/register";

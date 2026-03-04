@@ -91,3 +91,4 @@ const ConfirmProvider = ({ children }: { children: React.ReactNode }) => {
 };
 
 export { ConfirmContext, ConfirmProvider }
+export type { ConfirmContextType }

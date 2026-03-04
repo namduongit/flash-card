@@ -1,6 +1,6 @@
-import { useContext } from "react"
-import { AuthContext } from "../../contexts/auth-context"
-
+import { useEffect } from "react";
+import { AuthContext, type AuthContextType } from "../../contexts/providers/authentication-context";
+import { requireContext } from "../../utils/require-context";
 interface ProtectRouteProps {
     requireAuth?: {
         isRequired: boolean,
@@ -12,7 +12,7 @@ interface ProtectRouteProps {
 
 const ProtectRoute: React.FC<ProtectRouteProps> = ({ requireAuth, redirectIfAuthenticated, children }) => {
 
-    const { isLoadingSession, isAuthenticated } = useContext(AuthContext);
+    const { isLoadingSession, isAuthenticated } = requireContext<AuthContextType>(AuthContext);
 
     if (isLoadingSession) {
         return null;
@@ -27,6 +27,11 @@ const ProtectRoute: React.FC<ProtectRouteProps> = ({ requireAuth, redirectIfAuth
         window.location.href = requireAuth.redirectTo;
         return null;
     }
+
+    useEffect(() => {
+        console.log("ProtectRoute: ", { isLoadingSession, isAuthenticated });
+
+    }, [isLoadingSession, isAuthenticated])
 
     return (
         <>

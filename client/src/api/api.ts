@@ -1,11 +1,14 @@
 import axios, { AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from "axios";
-import type { AuthState } from "../contexts/auth-context";
+import type { AuthState } from "../contexts/providers/authentication-context";
 import type { RestResponse } from "../common/response.type";
-import { AuthService } from "../services/AuthService";
+
+let isRefreshing = false;
+let refreshPromise: Promise<string> | null = null;
+let ServerUrl = import.meta.env.VITE_SERVER_URL;
 
 const ApiService = () => {
     const api = axios.create({
-        baseURL: import.meta.env.VITE_SERVER_URL,
+        baseURL: ServerUrl,
         // Allow sending cookies with requests and receiving cookies from the server
         withCredentials: true
     });
@@ -15,73 +18,81 @@ const ApiService = () => {
         const stored = localStorage.getItem("CURRENT_ACCOUNT");
         if (stored) {
             const parsed: AuthState = JSON.parse(stored) || {};
-            if (parsed) {
-                if (parsed.accessToken) {
-                    config.headers.Authorization = `Bearer ${parsed.accessToken}`;
-                }
+            if (parsed && parsed.accessToken) {
+                config.headers.Authorization = `Bearer ${parsed.accessToken}`;
             }
             return config;
         }
-        localStorage.removeItem("CURRENT_ACCOUNT");
         return config;
     });
 
+    // Valid state (auto success) -> Lesson (failed) -> Refesh token (failed) -> execute received error response
     // Config response
     api.interceptors.response.use(
         (response: AxiosResponse) => {
             return response;
         },
         async (error: AxiosError) => {
-            console.log("error in here")
-            if (error.response) {
-                const code = error.response.status;
-                const statusText = error.response.statusText;
+            const entryConfig = error.config as InternalAxiosRequestConfig &
+            { _retry?: boolean } &
+            { _networkError?: boolean } & {
+                count?: number;
+            };
 
-                // Case 1: Unauthorized - Access token is invalid or expired
-                if (code === 401 && statusText == "Unauthorized") {
-                    console.log("Access token expired, attempting to refresh token...");
-                    const result = await AuthService.RefreshToken();
-                    if (result) {
-                        result.data as {
-                            accessToken: string
-                        };
+            // Case: Network error without response
+            if (!error.response) {
+                if (entryConfig) {
+                    entryConfig._networkError = true;
+                }
+                return Promise.reject(error);
+            }
+
+            const status = error.response.status;
+            // Case: 401 Unauthorized error - token might be expired
+            if (status !== 401) return Promise.reject(error);
+            if (entryConfig._retry) return Promise.reject(error);
+            entryConfig._retry = true;
+
+            try {
+                if (!isRefreshing) {
+                    isRefreshing = true;
+                    refreshPromise = axios.post(`${ServerUrl}/api/auth/refresh`,
+                        {},
+                        {
+                            withCredentials: true
+                        }
+                    ).then((response: AxiosResponse<RestResponse<{ accessToken: string }>>) => {
+                        const token = response.data.data.accessToken;
                         const stored = localStorage.getItem("CURRENT_ACCOUNT");
                         if (stored) {
-                            const parsed: AuthState = JSON.parse(stored) || {};
+                            const parsed: AuthState = JSON.parse(stored);
                             if (parsed) {
-                                parsed.accessToken = result.data.accessToken;
+                                parsed.accessToken = token;
                                 localStorage.setItem("CURRENT_ACCOUNT", JSON.stringify(parsed));
                             }
                         }
-                        // Retry the original request with the new access token
-                        const originalRequest = error.config;
-                        if (originalRequest && originalRequest.headers) {
-                            originalRequest.headers.Authorization = `Bearer ${result.data.accessToken}`;
-                            return api(originalRequest);
-                        }
-                    }
+                        return token;
+                    }).finally(() => {
+                        isRefreshing = false;
+                    });
                 }
-
-                // Other case
-
-            } else {
-                error.response = {
-                    status: 500,
-                    statusText: "Internal Server Error",
-                    data: {
-                        status: 500,
-                        message: "Internal Server Error",
-                        error: "Network error or server is unreachable",
-                        data: null
-                    } as RestResponse<null>,
-                    headers: {},
-                    config: {} as InternalAxiosRequestConfig
-                } as AxiosResponse;
-
-                // Return the modified error to services to handle
-                // Service A use ApiService, Error is Network error -> Service A can recieve a response 
-                return Promise.reject(error);
+                const newToken = await refreshPromise;
+                if (entryConfig.headers) {
+                    entryConfig.headers.Authorization = `Bearer ${newToken}`;
+                }
             }
+            catch (err: AxiosError | unknown) {
+                console.log("Error refreshing token:", err);
+                // Reject error to ExecuteQuery to handle logout and show message
+                if (err instanceof AxiosError) {
+                    const entryRefreshConfig = err.config as InternalAxiosRequestConfig & { _retry?: boolean };
+                    if (entryRefreshConfig) {
+                        entryRefreshConfig._retry = true;
+                    }   
+                }
+                return Promise.reject(err);
+            }
+            
         }
     )
 

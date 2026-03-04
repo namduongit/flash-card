@@ -12,7 +12,7 @@ export const AuthService = {
         return response;
     },
 
-    async CheckToken() {
+    async ValidState() {
         const response = await ApiService().get("/api/auth/valid-state");
         return response;
     },

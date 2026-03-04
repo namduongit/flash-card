@@ -1,14 +1,15 @@
-import { useEffect, useState, useContext } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import { AuthContext } from "../../contexts/auth-context";
 import { LessonService } from "../../services/LessonService";
-import { useExecute } from "../../hooks/execute";
 import type { LessonDetail } from "../../common/types/lesson-type";
+import { requireContext } from "../../utils/require-context";
+import { AuthContext, type AuthContextType } from "../../contexts/providers/authentication-context";
+import { ExecuteContext, type ExecuteContextType } from "../../contexts/execute/execute-context";
 
 const HomePage: React.FC = () => {
     const navigate = useNavigate();
-    const { authState } = useContext(AuthContext);
-    const { execute, isLoading } = useExecute();
+    const { authState } = requireContext<AuthContextType>(AuthContext);
+    const { execute, isLoading } = requireContext<ExecuteContextType>(ExecuteContext).ExecuteQuery();
     const [lessons, setLessons] = useState<LessonDetail[]>([]);
     const [recentLessons, setRecentLessons] = useState<LessonDetail[]>([]);
 
@@ -17,12 +18,17 @@ const HomePage: React.FC = () => {
     }, []);
 
     const fetchLessons = async () => {
-        const result = await execute<LessonDetail[]>(LessonService.GetMyLessons());
-        if (result?.data) {
-            setLessons(result.data);
-            setRecentLessons(result.data.slice(0, 3));
-        }
-    };
+        await execute<LessonDetail[]>(LessonService.GetMyLessons(), {
+            success: {
+                onSuccess: (result) => {
+                    if (result && result.data) {
+                        setLessons(result.data);
+                        setRecentLessons(result.data.slice(0, 3));
+                    }
+                }
+            }
+        });
+    }
 
     const totalWords = lessons.reduce((sum, lesson) => sum + (lesson.words?.length || 0), 0);
 

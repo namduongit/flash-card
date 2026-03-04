@@ -1,10 +1,9 @@
 import React, { useState, useRef, useEffect } from "react";
 import { WordService, type WordType } from "../../services/WordService";
 import { TranslateService } from "../../services/TranslateService";
-import { useExecute } from "../../hooks/execute";
-import { useConfirm } from "../../hooks/confirm";
-import { useNotification } from "../../hooks/notification";
 import type { Word } from "../../common/types/word-type";
+import { requireContext } from "../../utils/require-context";
+import { ExecuteContext, type ExecuteContextType } from "../../contexts/execute/execute-context";
 
 const wordTypes: WordType[] = ["noun", "verb", "adjective", "adverb", "pronoun", "preposition", "conjunction", "interjection"];
 
@@ -35,9 +34,7 @@ const AddWordModal: React.FC<AddWordModalProps> = ({ isOpen, lessonId, onSuccess
     const [searchLoading, setSearchLoading] = useState(false);
     const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const { execute, isLoading } = useExecute();
-    const { showConfirm } = useConfirm();
-    const { showSuccess, showError } = useNotification();
+    const { execute, isLoading } = requireContext<ExecuteContextType>(ExecuteContext).ExecuteQuery();
 
     const handleEnglishChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
@@ -52,16 +49,21 @@ const AddWordModal: React.FC<AddWordModalProps> = ({ isOpen, lessonId, onSuccess
             setShowSuggestions(false);
 
             searchTimeoutRef.current = setTimeout(async () => {
-                const result = await execute<SearchResult[]>(TranslateService.SearchDictionary(value));
-                console.log("Search results:", result);
-                if (result?.data && result.data.length > 0) {
-                    setSearchResults(result.data);
-                    setShowSuggestions(true);
-                } else {
-                    setSearchResults([]);
-                    setShowSuggestions(false);
-                }
-                setSearchLoading(false);
+                await execute<SearchResult[]>(TranslateService.SearchDictionary(value), {
+                    success: {
+                        onSuccess: (result) => {
+                            if (result && result.data && result.data.length > 0) {
+                                setSearchResults(result.data);
+                                setShowSuggestions(true);
+                            } else {
+                                setSearchResults([]);
+                                setShowSuggestions(false);
+                            }
+                            setSearchLoading(false);
+                        }
+                    }
+                });
+
             }, 500);
         } else {
             setSearchResults([]);
@@ -98,27 +100,27 @@ const AddWordModal: React.FC<AddWordModalProps> = ({ isOpen, lessonId, onSuccess
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        await execute<Word>(WordService.AddWord(lessonId, english, wordType, meaning, example || "No example"),
+            {
+                isConfirm: true,
+                success: {
+                    toast: "Thêm từ thành công!",
+                    onSuccess: (result) => {
+                        if (result && result.data) {
+                            setEnglish("");
+                            setWordType("noun");
+                            setMeaning("");
+                            setExample("");
+                            onSuccess(result.data);
+                            onClose();
+                        }
+                    }
+                },
+                error: {
+                    toast: "Thêm từ thất bại. Vui lòng thử lại."
+                }
+            });
 
-        if (!english.trim() || !meaning.trim()) {
-            showError("Từ tiếng Anh và nghĩa tiếng Việt không được để trống");
-            return;
-        }
-
-        const confirm = await showConfirm("Xác nhận thêm từ mới?", `Bạn có chắc chắn muốn thêm từ "${english}" không?`);
-        if (!confirm) return;
-
-        const result = await execute<Word>(WordService.AddWord(lessonId, english, wordType, meaning, example || "No example"));
-        if (result?.data) {
-            showSuccess("Thêm từ thành công!");
-            setEnglish("");
-            setWordType("noun");
-            setMeaning("");
-            setExample("");
-            onSuccess(result.data);
-            onClose();
-        } else {
-            showError("Thêm từ thất bại. Vui lòng thử lại.");
-        }
     }
 
     const handleClose = () => {

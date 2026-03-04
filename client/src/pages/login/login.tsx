@@ -1,45 +1,42 @@
-import { useState, useContext } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { useState } from 'react';
+import { Link } from 'react-router';
 import { AuthService } from '../../services/AuthService';
-import { useNotification } from '../../hooks/notification';
-import { useExecute } from '../../hooks/execute';
-import { AuthContext } from '../../contexts/auth-context';
 import type { LoginRes } from '../../common/types/auth-type';
-import { MessageContext } from '../../contexts/message-context';
+import { requireContext } from '../../utils/require-context';
+import { ExecuteContext, type ExecuteContextType } from '../../contexts/execute/execute-context';
+import { AuthContext, type AuthContextType } from '../../contexts/providers/authentication-context';
 
-const Login = () => {
+const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  const navigate = useNavigate();
-  const { saveStateAuth } = useContext(AuthContext);
-
-  const { execute, isLoading } = useExecute();
-
-  const { showError } = useNotification();
-  const useMessage = useContext(MessageContext);
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const { execute, isLoading } = requireContext<ExecuteContextType>(ExecuteContext).ExecuteQuery();
+  const { saveAuthState } = requireContext<AuthContextType>(AuthContext);
   
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("Submitting login form with email:", email);
+    const result = await execute<LoginRes>(AuthService.Login(email, password), 
+    {
+      success: {
+        toast: "Đăng nhập thành công !"
+      },
+      error: {
+        toast: "Đăng nhập thất bại, vui lòng kiểm tra lại thông tin !"
+      }
+    });
 
-    if (!email || !password) {
-      showError("Vui lòng nhập email và mật khẩu");
-      return;
-    }
-    const result = await execute<LoginRes>(AuthService.Login(email, password));
-    if (result?.data) {
-      saveStateAuth(result.data);
+    console.log(result);
+
+    if (result && result.data) {
+      console.log(result.data);
+      const state = result.data;
       setTimeout(() => {
-        navigate("/");
+        saveAuthState(state);
       }, 500);
-    } else {
-      useMessage?.addMessage({
-        type: "error",
-        title: "Đăng nhập thất bại",
-        content: "Tài khoản hoặc mật khẩu không chính xác. Vui lòng thử lại."
-      });
+
+      console.log("Login successful, navigating to home page...");
     }
   }
 
@@ -66,7 +63,7 @@ const Login = () => {
               disabled={isLoading}
               required
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition disabled:opacity-50 disabled:cursor-not-allowed"
-              placeholder="your@email.com"
+              placeholder="example@email.com"
             />
           </div>
 
@@ -114,7 +111,7 @@ const Login = () => {
         </p>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default Login;
+export default LoginPage;

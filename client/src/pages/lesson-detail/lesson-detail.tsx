@@ -1,18 +1,17 @@
-import { useEffect, useState, useContext } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router";
-import { AuthContext } from "../../contexts/auth-context";
 import { LessonService } from "../../services/LessonService";
-import { useExecute } from "../../hooks/execute";
 import type { LessonDetail } from "../../common/types/lesson-type";
 import type { Word } from "../../common/types/word-type";
 import WordRowComponent from "../../components/word-row/word-row";
 import AddWordModal from "../../components/add-modal/add-word";
+import { requireContext } from "../../utils/require-context";
+import { ExecuteContext, type ExecuteContextType } from "../../contexts/execute/execute-context";
 
 const LessonDetailPage: React.FC = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { isAuthenticated } = useContext(AuthContext);
-    const { execute, isLoading } = useExecute();
+    const { execute, isLoading } = requireContext<ExecuteContextType>(ExecuteContext).ExecuteQuery();
 
     const [lesson, setLesson] = useState<LessonDetail | null>(null);
     const [words, setWords] = useState<Word[]>([]);
@@ -26,14 +25,22 @@ const LessonDetailPage: React.FC = () => {
         }
 
         fetchLessonDetail();
-    }, [id, isAuthenticated, navigate]);
+    }, [id, navigate]);
 
     const fetchLessonDetail = async () => {
-        const result = await execute<LessonDetail>(LessonService.GetLessonById(id!));
-        if (result?.data) {
-            setLesson(result.data);
-            setWords(result.data.words || []);
-        }
+        await execute<LessonDetail>(LessonService.GetLessonById(id!), {
+            error: {
+                toast: "Không thể tải bài học của bạn. Vui lòng thử lại sau."
+            },
+            success: {
+                onSuccess: (result) => {
+                    if (result && result.data) {
+                        setLesson(result.data);
+                        setWords(result.data.words || []);
+                    }
+                }
+            }
+        });
     }
 
     const filteredWords = words.filter(word =>
@@ -77,10 +84,10 @@ const LessonDetailPage: React.FC = () => {
                 <div>
                     <div className="flex items-center rounded w-80 border border-gray-300">
                         <i className="fa-solid fa-magnifying-glass ps-2 text-sm text-gray-500 font-semibold"></i>
-                        <input 
-                            type="text" 
-                            className="ps-4 py-1 w-full" 
-                            placeholder="Tìm từ vựng..." 
+                        <input
+                            type="text"
+                            className="ps-4 py-1 w-full"
+                            placeholder="Tìm từ vựng..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
@@ -89,7 +96,7 @@ const LessonDetailPage: React.FC = () => {
 
 
                 <div>
-                    <button 
+                    <button
                         onClick={() => setIsShowCreateWord(true)}
                         className="bg-blue-700 text-white px-3 py-2 rounded-lg font-semibold hover:bg-indigo-700 transition flex items-center gap-2"
                     >
@@ -129,8 +136,8 @@ const LessonDetailPage: React.FC = () => {
                             </thead>
                             <tbody>
                                 {filteredWords.map((word, idx) => (
-                                    <WordRowComponent 
-                                        key={idx} 
+                                    <WordRowComponent
+                                        key={idx}
                                         {...word}
                                         onUpdate={(updatedWord) => {
                                             setWords(words.map(w => w._id === updatedWord._id ? updatedWord : w));
@@ -146,7 +153,7 @@ const LessonDetailPage: React.FC = () => {
                 )}
             </div>
 
-            <AddWordModal 
+            <AddWordModal
                 isOpen={isShowCreateWord}
                 lessonId={id || ""}
                 onSuccess={(newWord) => {

@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { AuthService } from "../../services/AuthService";
-import { useExecute } from "../../hooks/execute";
-import { useNotification } from "../../hooks/notification";
 import type { ChangePasswordRes } from "../../common/types/auth-type";
+import { requireContext } from "../../utils/require-context";
+import { ExecuteContext, type ExecuteContextType } from "../../contexts/execute/execute-context";
 
 const ChangePasswordPage: React.FC = () => {
     const [oldPassword, setOldPassword] = useState("");
@@ -12,56 +12,20 @@ const ChangePasswordPage: React.FC = () => {
     const [showNewPassword, setShowNewPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-    const { execute, isLoading } = useExecute();
-    const { showSuccess, showError } = useNotification();
+    const { execute, isLoading } = requireContext<ExecuteContextType>(ExecuteContext).ExecuteQuery();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-
-        if (!oldPassword.trim()) {
-            showError("Vui lòng nhập mật khẩu hiện tại");
-            return;
-        }
-
-        if (!newPassword.trim()) {
-            showError("Vui lòng nhập mật khẩu mới");
-            return;
-        }
-
-        if (newPassword.length < 6) {
-            showError("Mật khẩu mới phải có ít nhất 6 ký tự");
-            return;
-        }
-
-        if (newPassword !== confirmPassword) {
-            showError("Mật khẩu xác nhận không khớp");
-            return;
-        }
-
-        if (oldPassword === newPassword) {
-            showError("Mật khẩu mới phải khác mật khẩu hiện tại");
-            return;
-        }
-
-        const result = await execute<ChangePasswordRes>(
-            AuthService.ChangePassword(oldPassword, newPassword)
-        );
-
-        if (result?.data) {
-            showSuccess("Đổi mật khẩu thành công!");
-            setOldPassword("");
-            setNewPassword("");
-            setConfirmPassword("");
-        } else {
-            if (result?.data?.message?.includes("Incorrect")) {
-                showError("Mật khẩu hiện tại không chính xác");
-            } else if (result?.data?.message?.includes("different")) {
-                showError("Mật khẩu mới phải khác mật khẩu hiện tại");
-            } else {
-                showError("Đổi mật khẩu thất bại. Vui lòng thử lại.");
+        await execute<ChangePasswordRes[]>(AuthService.ChangePassword(oldPassword, newPassword), {
+            isConfirm: true,
+            error: {
+                toast: "Không thể đổi mật khẩu. Vui lòng thử lại sau."
+            },
+            success: {
+                toast: "Đổi mật khẩu thành công!",
             }
-        }
-    };
+        });
+    }
 
     return (
         <div className="flex-1 px-8 py-5 bg-gray-50">

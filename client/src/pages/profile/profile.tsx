@@ -1,8 +1,9 @@
-import { useContext, useState } from "react";
-import { AuthContext } from "../../contexts/auth-context";
+import { useState } from "react";
+import { requireContext } from "../../utils/require-context";
+import { AuthContext, type AuthContextType } from "../../contexts/providers/authentication-context";
 
 const ProfilePage: React.FC = () => {
-    const { authState } = useContext(AuthContext);
+  const { authState } = requireContext<AuthContextType>(AuthContext);
     const [showAvatarInput, setShowAvatarInput] = useState(false);
 
     return (

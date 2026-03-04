@@ -1,26 +1,43 @@
-import { createContext, useState, type JSX } from "react";
+import { createContext, useRef, useState, type JSX } from "react";
 
-type MessageType = {
-    type: "message" | "success" | "error";
+export type MessageType = "message" | "success" | "error";
+
+export type Message = {
+    type: MessageType;
     title: string;
     content: string;
 }
 
 interface MessageContextType {
-    addMessage: (message: MessageType) => void;
-    removeMessage: (index: number) => void;
+    waitMessage: (message: Message) => Promise<void>;
+    addMessage: (message: Message) => void;
+    removeMessage: () => void;
 }
 
 const MessageContext = createContext<MessageContextType | undefined>(undefined);
 
 const MessageProvider = ({ children }: { children: React.ReactNode }) => {
-    const [message, setMessages] = useState<MessageType | null>(null);
+    const [message, setMessages] = useState<Message | null>(null);
 
-    const addMessage = (message: MessageType) => {
+    const resolveConfirm = useRef<((value?: void) => void) | null>(null);
+
+    const waitMessage = (message: Message): Promise<void> => {
+        return new Promise<void>((resolve) => {
+            addMessage(message);
+            resolveConfirm.current = resolve;
+        })
+    }
+
+    const addMessage = (message: Message) => {
         setMessages(message);
     }
 
     const removeMessage = () => {
+        if (resolveConfirm.current) {
+            resolveConfirm.current();
+            // Clean memory leak
+            resolveConfirm.current = null;
+        }
         setMessages(null);
     }
 
@@ -29,9 +46,9 @@ const MessageProvider = ({ children }: { children: React.ReactNode }) => {
     const ErrorIcon: JSX.Element = <i className="fa-solid fa-circle-xmark text-red-500"></i>
 
     return (
-        <MessageContext.Provider value={{ addMessage, removeMessage }}>
+        <MessageContext.Provider value={{ waitMessage, addMessage, removeMessage }}>
             {message && (
-                <div className="fixed top-0 left-0 bg-gray-500/40 w-full h-full flex items-center justify-center z-100">
+                <div className="fixed top-0 left-0 bg-gray-500/40 w-full h-full flex items-center justify-center z-50">
                     <div className="message w-120 bg-white shadow-lg rounded">
                         <div className="flex items-center gap-2 px-4 py-2 border-b border-gray-300">
                             {message.type === "message" && MessageIcon}
@@ -59,3 +76,4 @@ const MessageProvider = ({ children }: { children: React.ReactNode }) => {
 }
 
 export { MessageContext, MessageProvider }
+export type { MessageContextType }

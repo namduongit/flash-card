@@ -13,7 +13,7 @@ const SidebarComponent: React.FC = () => {
     };
 
     return (
-        <div className="h-[95vh] flex flex-col space-y-6 py-5 px-4 border-r border-gray-300">
+        <div className="h-[95vh] flex flex-col space-y-6 py-5 px-4 border-r border-gray-300 overflow-y-auto">
             <div className="space-y-3">
                 <div
                     onClick={() => navigate('/')}

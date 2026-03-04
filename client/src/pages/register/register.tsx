@@ -1,62 +1,45 @@
-import { useState, useContext } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { AuthService } from '../../services/AuthService';
-import { AuthContext } from '../../contexts/auth-context';
-import { useNotification } from '../../hooks/notification';
-import { useExecute } from '../../hooks/execute';
 import type { RegisterRes } from '../../common/types/auth-type';
+import { requireContext } from '../../utils/require-context';
+import { ExecuteContext, type ExecuteContextType } from '../../contexts/execute/execute-context';
+import { AuthContext, type AuthContextType } from '../../contexts/providers/authentication-context';
 
-const Register = () => {
+const RegisterPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  
+
   const navigate = useNavigate();
-  const { saveStateAuth } = useContext(AuthContext);
-  const { execute } = useExecute();
-  const { showError } = useNotification();
+
+  const { execute, isLoading } = requireContext<ExecuteContextType>(ExecuteContext).ExecuteQuery();
+  const { saveAuthState } = requireContext<AuthContextType>(AuthContext);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!email || !password || !confirmPassword) {
-      showError("Vui lòng nhập đầy đủ thông tin");
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      showError('Mật khẩu không trùng khớp');
-      return;
-    }
-
-    if (password.length < 6) {
-      showError('Mật khẩu phải có ít nhất 6 ký tự');
-      return;
-    }
-
-    if (!agreeTerms) {
-      showError('Vui lòng đồng ý với điều khoản và chính sách');
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      const result = await execute<RegisterRes>(AuthService.Register(email, password));
-
-       if (result?.data) {
-        saveStateAuth(result.data);
-        setTimeout(() => {
-          navigate('/');
-        }, 500);
+    await execute<RegisterRes>(AuthService.Register(email, password), {
+      isConfirm: true,
+      success: {
+        isWait: true,
+        message: {
+          type: "success",
+          title: "Đăng ký thành công",
+          content: "Bạn đã đăng ký thành công. Chuyển hướng đến trang đăng nhập..."
+        },
+        onSuccess: (result) => {
+          if (result && result.data) {
+            saveAuthState(result.data);
+            setTimeout(() => {
+              navigate("/");
+            }, 500);
+          }
+        }
       }
-    } finally {
-      setIsLoading(false);
-    }
+    });
   };
 
   return (
@@ -70,7 +53,6 @@ const Register = () => {
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Email Field */}
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
               Email
@@ -139,7 +121,6 @@ const Register = () => {
             </div>
           </div>
 
-          {/* Terms and Conditions Checkbox */}
           <div className="flex items-start gap-3 pt-2">
             <input
               id="terms"
@@ -161,7 +142,6 @@ const Register = () => {
             </label>
           </div>
 
-          {/* Submit Button */}
           <button
             type="submit"
             disabled={isLoading || !agreeTerms}
@@ -172,7 +152,6 @@ const Register = () => {
           </button>
         </form>
 
-        {/* Login Link */}
         <p className="text-center text-gray-600 mt-6">
           Đã có tài khoản?{' '}
           <Link to="/auth/login" className="text-indigo-600 hover:text-indigo-700 font-semibold">
@@ -184,4 +163,4 @@ const Register = () => {
   );
 };
 
-export default Register;
+export default RegisterPage;

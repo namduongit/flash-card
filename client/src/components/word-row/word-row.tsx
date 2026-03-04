@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { WordService, type WordType } from "../../services/WordService";
-import { useExecute } from "../../hooks/execute";
-import { useConfirm } from "../../hooks/confirm";
-import { useNotification } from "../../hooks/notification";
+
 import type { Word } from "../../common/types/word-type";
+import { requireContext } from "../../utils/require-context";
+import { ExecuteContext, type ExecuteContextType } from "../../contexts/execute/execute-context";
 
 interface WordRowProps extends Word {
     onUpdate?: (updatedWord: Word) => void;
@@ -17,51 +17,49 @@ const WordRowComponent: React.FC<WordRowProps> = (props) => {
     const [vietnamese, setVietnamese] = useState(initialVietnamese);
     const [example, setExample] = useState(initialExample);
 
-    const { execute, isLoading } = useExecute();
-    const { showConfirm } = useConfirm();
-    const { showSuccess, showError } = useNotification();
+    const { execute, isLoading } = requireContext<ExecuteContextType>(ExecuteContext).ExecuteQuery();
 
     const handleSave = async () => {
-        if (!english.trim() || !vietnamese.trim()) {
-            showError("Từ tiếng Anh và tiếng Việt không được để trống");
-            return;
-        }
-
         const result = await execute<Word>(
-            WordService.UpdateWord(_id, english, wordType as WordType, vietnamese, example)
-        );
-
-        if (result?.data) {
-            showSuccess("Cập nhật từ thành công!");
-            if (onUpdate) {
-                onUpdate(result.data);
+            WordService.UpdateWord(_id, english, wordType as WordType, vietnamese, example),
+            {
+                success: {
+                    toast: "Cập nhật từ thành công!",
+                    onSuccess: () => {
+                        if (onUpdate && result && result.data) {
+                            onUpdate(result.data);
+                        }
+                    }
+                },
+                error: {
+                    toast: "Cập nhật từ thất bại. Vui lòng thử lại."
+                }
             }
-            setIsEditing(false);
-        } else {
-            showError("Cập nhật từ thất bại. Vui lòng thử lại.");
-        }
-    };
+        );
+    }
 
     const handleCancel = () => {
         setEnglish(initialEnglish);
         setVietnamese(initialVietnamese);
         setExample(initialExample);
         setIsEditing(false);
-    };
+    }
 
     const handleDelete = async () => {
-        const confirm = await showConfirm("Xác nhận xóa?", `Bạn có chắc chắn muốn xóa từ "${initialEnglish}" không?`);
-        if (!confirm) return;
-
-        const result = await execute(WordService.DeleteWord(_id));
-        if (result?.data) {
-            showSuccess("Xóa từ thành công!");
-            if (onDelete) {
-                onDelete(_id);
+        await execute(WordService.DeleteWord(_id), {
+            isConfirm: true,
+            success: {
+                toast: "Xóa từ thành công!",
+                onSuccess: () => {
+                    if (onDelete) {
+                        onDelete(_id);
+                    }
+                }
+            },
+            error: {
+                toast: "Xóa từ thất bại. Vui lòng thử lại."
             }
-        } else {
-            showError("Xóa từ thất bại. Vui lòng thử lại.");
-        }
+        });
     };
 
     return (

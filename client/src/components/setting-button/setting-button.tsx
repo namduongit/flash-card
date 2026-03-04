@@ -1,21 +1,18 @@
-import { useState, useContext } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router";
-import { AuthContext } from "../../contexts/auth-context";
-import { useConfirm } from "../../hooks/confirm";
+import { requireContext } from "../../utils/require-context";
+import { AuthContext, type AuthContextType } from "../../contexts/providers/authentication-context";
 
 const SettingButtonComponent: React.FC = () => {
     const navigate = useNavigate();
-    const { clearAuth } = useContext(AuthContext);
-    const { showConfirm } = useConfirm();
+    const { clearAuthState } = requireContext<AuthContextType>(AuthContext);
 
     const [isClicked, setIsClicked] = useState(false);
 
     const handleLogout = async () => {
-        const result = await showConfirm("Xác nhận đăng xuất", "Bạn có chắc chắn muốn đăng xuất không?", { confirmText: "Đăng Xuất", cancelText: "Hủy" });
-        if (!result) return;
-        clearAuth();
+        clearAuthState();
         navigate("/auth/login");
-    };
+    }
 
     return (
         <div className="relative px-5 py-3 rounded-lg cursor-pointer transition-all duration-300 hover:bg-gray-100 group"

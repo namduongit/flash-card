@@ -1,9 +1,8 @@
 import React, { useState } from "react";
 import { LessonService } from "../../services/LessonService";
-import { useExecute } from "../../hooks/execute";
-import { useConfirm } from "../../hooks/confirm";
 import type { Lesson } from "../../common/types/lesson-type";
-import { useNotification } from "../../hooks/notification";
+import { requireContext } from "../../utils/require-context";
+import { ExecuteContext, type ExecuteContextType } from "../../contexts/execute/execute-context";
 
 interface AddLessonModalProps {
     isOpen: boolean;
@@ -15,9 +14,7 @@ const AddLessonModal: React.FC<AddLessonModalProps> = ({ isOpen, onSuccess, onCl
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
 
-    const { execute, isLoading } = useExecute();
-    const { showConfirm } = useConfirm();
-    const { showSuccess, showError } = useNotification();
+    const { execute, isLoading } = requireContext<ExecuteContextType>(ExecuteContext).ExecuteQuery();
 
     if (!isOpen) {
         return null;
@@ -25,24 +22,22 @@ const AddLessonModal: React.FC<AddLessonModalProps> = ({ isOpen, onSuccess, onCl
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!title.trim()) {
-            showError("Tiêu đề không được để trống");
-            return;
-        }
-
-        const confirm = await showConfirm("Xác nhận tạo bài học mới?", "Bạn có chắc chắn muốn tạo bài học mới với tiêu đề này không?");
-        if (!confirm) return;
-        
-        const result = await execute<Lesson>(LessonService.CreateLesson(title, description));
-        if (result?.data) {
-            showSuccess("Tạo bài học thành công!");
-            setTitle("");
-            setDescription("");
-            onSuccess(result.data);
-            onClose();
-        } else {
-            showError("Tạo bài học thất bại. Vui lòng thử lại.");
-        }
+        await execute<Lesson>(LessonService.CreateLesson(title, description), {
+            error: {
+                toast: "Tạo bài học thất bại. Vui lòng thử lại."
+            },
+            success: {
+                toast: "Tạo bài học thành công!",
+                onSuccess: (result) => {
+                    if (result && result.data) {
+                        setTitle("");
+                        setDescription("");
+                        onSuccess(result.data);
+                        onClose();
+                    }
+                }
+            }
+        });
 
     }
 
